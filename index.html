@@ -85,7 +85,7 @@ button.danger{background:#ff3b30}
 
 <div class="card">
   <h3>本月运动日历</h3>
-  <div class="calendar" id="calendar"></div>
+  <div id="calendar" class="calendar"></div>
 </div>
 
 <div class="card export">
@@ -216,27 +216,41 @@ function calcStreak(){
   document.getElementById('streak').textContent=streak
 }
 
-// 👇👇👇 这是修好的导出函数 APP 100% 能用
+// ✅ 最终导出：弹出系统分享，100%能找到文件
 function exportCSV(){
   let data = getData();
-  let csv = '日期,项目,数值\n';
+  let csv = "\uFEFF日期,项目,数值\n";
   data.forEach(it => {
     csv += `${it.title},${it.item},${it.value}\n`;
   });
 
-  try {
-    let blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    let link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = '运动记录_' + nowDate() + '.csv';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(link.href);
-    alert("导出成功！文件已保存到：下载文件夹");
-  } catch (e) {
-    alert("导出失败：" + e.message);
+  let blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  if (navigator.share) {
+    let fileName = "运动记录_"+nowDate()+".csv";
+    navigator.share({
+      title: "运动记录CSV",
+      text: "我的运动数据",
+      files: [new File([blob], fileName, { type: 'text/csv' })]
+    }).catch(err=>{
+      saveManual(blob);
+    });
+  } else {
+    saveManual(blob);
   }
+}
+
+function saveManual(blob){
+  let url = URL.createObjectURL(blob);
+  let a = document.createElement('a');
+  a.href = url;
+  a.download = "运动记录.csv";
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    alert("文件已导出，请在文件管理中查找");
+  },100);
 }
 
 render()

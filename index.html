@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>运动打卡</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:16px;background:#f4f6f8;font-family:system-ui,-apple-system,Roboto}
+.card{background:white;border-radius:16px;padding:14px;margin-bottom:12px}
+h1{font-size:22px;margin:4px 0}
+.date{color:#666}
+.item{display:flex;justify-content:space-between;align-items:center;padding:10px 0}
+input{width:70px;padding:8px;border:1px solid #ddd;border-radius:8px;text-align:center}
+button{padding:8px 12px;border:none;border-radius:8px;background:#007aff;color:white}
+button.done{background:#34c759}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.stat{text-align:center;padding:8px}
+.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:10px}
+.day{background:#f0f0f0;text-align:center;padding:6px;border-radius:6px;font-size:12px}
+.day.done{background:#d1f7d1}
+.export{margin-top:16px}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>每日运动打卡</h1>
+  <div class="date" id="todayDate"></div>
+</div>
+
+<div class="card">
+  <div class="item">
+    <div>八段锦</div>
+    <div><input type="number" id="baduanjin" placeholder="分钟"> <button onclick="save('八段锦',baduanjin.value)">完成</button></div>
+  </div>
+  <div class="item">
+    <div>慢跑</div>
+    <div><input type="number" id="run" placeholder="公里"> <button onclick="save('慢跑',run.value)">完成</button></div>
+  </div>
+  <div class="item">
+    <div>深蹲</div>
+    <div><input type="number" id="squat" placeholder="个"> <button onclick="save('深蹲',squat.value)">完成</button></div>
+  </div>
+  <div class="item">
+    <div>平板支撑</div>
+    <div><input type="number" id="plank" placeholder="秒"> <button onclick="save('平板支撑',plank.value)">完成</button></div>
+  </div>
+  <div class="item">
+    <div>靠墙俯卧撑</div>
+    <div><input type="number" id="push" placeholder="个"> <button onclick="save('靠墙俯卧撑',push.value)">完成</button></div>
+  </div>
+  <div class="item">
+    <div>冥想</div>
+    <div><input type="number" id="med" placeholder="分钟"> <button onclick="save('冥想',med.value)">完成</button></div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>本月运动日历</h3>
+  <div class="calendar" id="calendar"></div>
+</div>
+
+<div class="card">
+  <h3>统计分析</h3>
+  <div class="stats">
+    <div class="stat">本周跑步：<span id="runWeek">0</span> 次</div>
+    <div class="stat">本月总天数：<span id="totalDays">0</span> 天</div>
+  </div>
+</div>
+
+<div class="card export">
+  <button onclick="exportCSV()">导出 CSV</button>
+</div>
+
+<script>
+function nowDate(){return new Date().toISOString().split('T')[0]}
+function today(){return new Date().toLocaleDateString('zh-CN')}
+
+function save(name,val){
+  if(!val)return
+  let d=nowDate()
+  let list=JSON.parse(localStorage.getItem('sport')||'[]')
+  list.push({date:d,title:today(),item:name,value:val})
+  localStorage.setItem('sport',JSON.stringify(list))
+  alert('已保存')
+  render()
+}
+
+function getData(){return JSON.parse(localStorage.getItem('sport')||'[]')}
+
+function render(){
+  document.getElementById('todayDate').innerText=today()
+  renderCalendar()
+  renderStats()
+}
+
+function renderCalendar(){
+  let now=new Date()
+  let year=now.getFullYear()
+  let month=now.getMonth()
+  let first=new Date(year,month,1)
+  let last=new Date(year,month+1,0)
+  let days=last.getDate()
+  let html=''
+  let data=getData()
+  for(let i=1;i<=days;i++){
+    let d=`${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`
+    let done=data.some(x=>x.date==d)
+    html+=`<div class="day ${done?'done':''}">${i}</div>`
+  }
+  document.getElementById('calendar').innerHTML=html
+}
+
+function renderStats(){
+  let data=getData()
+  let now=new Date()
+  let weekStart=new Date(now.setDate(now.getDate()-now.getDay()));
+  weekStart.setHours(0,0,0,0)
+  let runWeek=0
+  let month=now.getMonth()
+  let monthDays=new Set()
+  data.forEach(it=>{
+    let d=new Date(it.date)
+    if(it.item=='慢跑' && d>=weekStart)runWeek++
+    if(d.getMonth()==month)monthDays.add(it.date)
+  })
+  document.getElementById('runWeek').textContent=runWeek
+  document.getElementById('totalDays').textContent=monthDays.size
+}
+
+function exportCSV(){
+  let data=getData()
+  let csv='日期,项目,数值\n'
+  data.forEach(it=>{csv+=`${it.title},${it.item},${it.value}\n`})
+  let blob=new Blob([csv],{type:'text/csv'})
+  let url=URL.createObjectURL(blob)
+  let a=document.createElement('a')
+  a.href=url;a.download='运动打卡.csv'
+  a.click();URL.revokeObjectURL(url)
+}
+
+render()
+</script>
+</body>
+</html>

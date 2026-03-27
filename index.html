@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<link rel="manifest" href="/sport/manifest.json">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>运动打卡</title>
@@ -10,17 +9,19 @@
 body{margin:0;padding:16px;background:#f4f6f8;font-family:system-ui,-apple-system,Roboto}
 .card{background:white;border-radius:16px;padding:14px;margin-bottom:12px}
 h1{font-size:22px;margin:4px 0}
+h2{font-size:18px;margin:0 0 8px 0}
 .date{color:#666}
-.item{display:flex;justify-content:space-between;align-items:center;padding:10px 0}
+.item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0}
 input{width:70px;padding:8px;border:1px solid #ddd;border-radius:8px;text-align:center}
 button{padding:8px 12px;border:none;border-radius:8px;background:#007aff;color:white}
-button.done{background:#34c759}
+button.danger{background:#ff3b30}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
 .stat{text-align:center;padding:8px}
 .calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:10px}
 .day{background:#f0f0f0;text-align:center;padding:6px;border-radius:6px;font-size:12px}
 .day.done{background:#d1f7d1}
 .export{margin-top:16px}
+.custom{margin-top:12px;padding-top:12px;border-top:1px solid #f0f0f0}
 </style>
 </head>
 <body>
@@ -40,42 +41,52 @@ button.done{background:#34c759}
     <div><input type="number" id="run" placeholder="公里"> <button onclick="save('慢跑',run.value)">完成</button></div>
   </div>
   <div class="item">
-    <div>靠墙静蹲</div>
-    <div><input type="number" id="squat" placeholder="分"> <button onclick="save('深蹲',squat.value)">完成</button></div>
+    <div>深蹲</div>
+    <div><input type="number" id="squat" placeholder="个"> <button onclick="save('深蹲',squat.value)">完成</button></div>
   </div>
   <div class="item">
     <div>平板支撑</div>
     <div><input type="number" id="plank" placeholder="秒"> <button onclick="save('平板支撑',plank.value)">完成</button></div>
   </div>
   <div class="item">
-    <div>靠墙俯卧撑</div>
+    <div>俯卧撑</div>
     <div><input type="number" id="push" placeholder="个"> <button onclick="save('靠墙俯卧撑',push.value)">完成</button></div>
   </div>
   <div class="item">
     <div>冥想</div>
     <div><input type="number" id="med" placeholder="分钟"> <button onclick="save('冥想',med.value)">完成</button></div>
   </div>
+
+  <!-- 自定义运动项目 -->
+  <div class="custom">
+    <div style="margin-bottom:6px;font-size:14px;color:#666">自定义运动</div>
+    <div class="item" style="border:none;padding:4px 0">
+      <input type="text" id="customName" placeholder="项目名称" style="width:100px">
+      <input type="number" id="customVal" placeholder="数值">
+      <button onclick="saveCustom()">记录</button>
+    </div>
+  </div>
 </div>
 
-<!-- 今日运动记录模块 -->
 <div class="card">
-  <h2 style="font-size:20px; font-weight:bold; margin:0 0 10px 0;">今日运动记录</h2>
-  <div id="todayRecords" style="font-size:16px; line-height:1.8;">
-    今天还没有运动记录哦～
+  <h2>今日运动记录</h2>
+  <div id="todayRecords" style="line-height:1.8">今天还没有运动记录</div>
+  <div style="margin-top:10px;font-weight:bold" id="todayTotal"></div>
+  <button onclick="clearToday()" class="danger" style="margin-top:10px">清空今日记录</button>
+</div>
+
+<div class="card">
+  <h3>运动统计</h3>
+  <div class="stats">
+    <div class="stat">连续打卡：<span id="streak">0</span> 天</div>
+    <div class="stat">本月运动：<span id="totalDays">0</span> 天</div>
+    <div class="stat">本周跑步：<span id="runWeek">0</span> 公里</div>
   </div>
 </div>
 
 <div class="card">
   <h3>本月运动日历</h3>
   <div class="calendar" id="calendar"></div>
-</div>
-
-<div class="card">
-  <h3>统计分析</h3>
-  <div class="stats">
-    <div class="stat">本周跑步：<span id="runWeek">0</span> 次</div>
-    <div class="stat">本月总天数：<span id="totalDays">0</span> 天</div>
-  </div>
 </div>
 
 <div class="card export">
@@ -87,36 +98,85 @@ function nowDate(){return new Date().toISOString().split('T')[0]}
 function today(){return new Date().toLocaleDateString('zh-CN')}
 
 function save(name,val){
-  if(!val)return
+  if(!val) return
+  addRecord(name, val)
+  alert(name+' 已保存')
+  render()
+}
+
+function saveCustom(){
+  let name = document.getElementById('customName').value
+  let val = document.getElementById('customVal').value
+  if(!name || !val) return alert('请填写完整')
+  addRecord(name, val)
+  alert('已保存')
+  document.getElementById('customName').value=''
+  document.getElementById('customVal').value=''
+  render()
+}
+
+function addRecord(name,val){
   let d=nowDate()
   let list=JSON.parse(localStorage.getItem('sport')||'[]')
   list.push({date:d,title:today(),item:name,value:val})
   localStorage.setItem('sport',JSON.stringify(list))
-  alert('已保存')
-  render()
-  showToday() // 👈 保存后立刻刷新今日记录
 }
 
 function getData(){return JSON.parse(localStorage.getItem('sport')||'[]')}
 
 function render(){
   document.getElementById('todayDate').innerText=today()
+  showToday()
   renderCalendar()
   renderStats()
-  showToday()
+  calcStreak()
+}
+
+function showToday(){
+  const today = nowDate()
+  const list = getData()
+  const todayList = list.filter(i=>i.date===today)
+  const el = document.getElementById('todayRecords')
+
+  if(todayList.length===0){
+    el.innerHTML='今天还没有运动记录'
+    document.getElementById('todayTotal').innerHTML=''
+    return
+  }
+
+  let html=''
+  let km=0, min=0
+  todayList.forEach(it=>{
+    html+=`<div>${it.item}：${it.value}</div>`
+    if(it.item=='慢跑') km+=parseFloat(it.value)||0
+    if(it.item=='八段锦'||it.item=='冥想') min+=parseFloat(it.value)||0
+  })
+
+  el.innerHTML=html
+  let total=''
+  if(km>0) total+=`跑步 ${km} 公里 `
+  if(min>0) total+=`运动 ${min} 分钟`
+  document.getElementById('todayTotal').innerHTML=total
+}
+
+function clearToday(){
+  if(!confirm('确定清空今天所有记录？')) return
+  const today = nowDate()
+  let list = getData()
+  list = list.filter(i=>i.date!==today)
+  localStorage.setItem('sport',JSON.stringify(list))
+  render()
 }
 
 function renderCalendar(){
   let now=new Date()
   let year=now.getFullYear()
   let month=now.getMonth()
-  let first=new Date(year,month,1)
-  let last=new Date(year,month+1,0)
-  let days=last.getDate()
-  let html=''
+  let days=new Date(year,month+1,0).getDate()
   let data=getData()
+  let html=''
   for(let i=1;i<=days;i++){
-    let d=`${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`
+    let d=`${year}-${String(month+1).padStart(2,0)}-${String(i).padStart(2,0)}`
     let done=data.some(x=>x.date==d)
     html+=`<div class="day ${done?'done':''}">${i}</div>`
   }
@@ -126,18 +186,35 @@ function renderCalendar(){
 function renderStats(){
   let data=getData()
   let now=new Date()
-  let weekStart=new Date(now.setDate(now.getDate()-now.getDay()));
+  let weekStart=new Date(now.setDate(now.getDate()-now.getDay()))
   weekStart.setHours(0,0,0,0)
   let runWeek=0
-  let month=now.getMonth()
   let monthDays=new Set()
+  let currMonth=new Date().getMonth()
+
   data.forEach(it=>{
     let d=new Date(it.date)
-    if(it.item=='慢跑' && d>=weekStart)runWeek++
-    if(d.getMonth()==month)monthDays.add(it.date)
+    if(it.item=='慢跑' && d>=weekStart) runWeek+=parseFloat(it.value)||0
+    if(d.getMonth()==currMonth) monthDays.add(it.date)
   })
-  document.getElementById('runWeek').textContent=runWeek
+
+  document.getElementById('runWeek').textContent=runWeek.toFixed(1)
   document.getElementById('totalDays').textContent=monthDays.size
+}
+
+function calcStreak(){
+  let data=getData()
+  let dates=new Set(data.map(i=>i.date))
+  let today=nowDate()
+  let streak=0
+  while(true){
+    if(dates.has(today)) streak++
+    else break
+    let d=new Date(today)
+    d.setDate(d.getDate()-1)
+    today=d.toISOString().split('T')[0]
+  }
+  document.getElementById('streak').textContent=streak
 }
 
 function exportCSV(){
@@ -149,25 +226,6 @@ function exportCSV(){
   let a=document.createElement('a')
   a.href=url;a.download='运动打卡.csv'
   a.click();URL.revokeObjectURL(url)
-}
-
-// 显示今日运动记录（已修好）
-function showToday(){
-  const today = nowDate()
-  const list = getData()
-  const todayList = list.filter(item => item.date === today)
-
-  const el = document.getElementById('todayRecords')
-  if(todayList.length === 0){
-    el.innerHTML = '今天还没有运动记录哦～'
-    return
-  }
-
-  let html = ''
-  todayList.forEach(item => {
-    html += `<div>${item.item}：${item.value}</div>`
-  })
-  el.innerHTML = html
 }
 
 render()

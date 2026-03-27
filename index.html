@@ -224,33 +224,12 @@ function exportCSV(){
     csv += `${it.title},${it.item},${it.value}\n`;
   });
 
-  let blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  if (navigator.share) {
-    let fileName = "运动记录_"+nowDate()+".csv";
-    navigator.share({
-      title: "运动记录CSV",
-      text: "我的运动数据",
-      files: [new File([blob], fileName, { type: 'text/csv' })]
-    }).catch(err=>{
-      saveManual(blob);
-    });
-  } else {
-    saveManual(blob);
-  }
+  // 直接弹窗显示CSV内容，让你复制
+  alert("完整CSV数据如下（长按可复制）：\n\n" + csv);
 }
 
 function saveManual(blob){
-  let url = URL.createObjectURL(blob);
-  let a = document.createElement('a');
-  a.href = url;
-  a.download = "运动记录.csv";
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(()=>{
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    alert("文件已导出，请在文件管理中查找");
-  },100);
+  // 不再用下载，直接走上面的弹窗
 }
 
 render()

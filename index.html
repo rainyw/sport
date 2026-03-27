@@ -57,6 +57,14 @@ button.done{background:#34c759}
   </div>
 </div>
 
+<!-- 今日运动记录模块 -->
+<div class="card">
+  <h2 style="font-size:20px; font-weight:bold; margin:0 0 10px 0;">今日运动记录</h2>
+  <div id="todayRecords" style="font-size:16px; line-height:1.8;">
+    今天还没有运动记录哦～
+  </div>
+</div>
+
 <div class="card">
   <h3>本月运动日历</h3>
   <div class="calendar" id="calendar"></div>
@@ -86,6 +94,7 @@ function save(name,val){
   localStorage.setItem('sport',JSON.stringify(list))
   alert('已保存')
   render()
+  showToday() // 👈 保存后立刻刷新今日记录
 }
 
 function getData(){return JSON.parse(localStorage.getItem('sport')||'[]')}
@@ -94,6 +103,7 @@ function render(){
   document.getElementById('todayDate').innerText=today()
   renderCalendar()
   renderStats()
+  showToday()
 }
 
 function renderCalendar(){
@@ -139,6 +149,25 @@ function exportCSV(){
   let a=document.createElement('a')
   a.href=url;a.download='运动打卡.csv'
   a.click();URL.revokeObjectURL(url)
+}
+
+// 显示今日运动记录（已修好）
+function showToday(){
+  const today = nowDate()
+  const list = getData()
+  const todayList = list.filter(item => item.date === today)
+
+  const el = document.getElementById('todayRecords')
+  if(todayList.length === 0){
+    el.innerHTML = '今天还没有运动记录哦～'
+    return
+  }
+
+  let html = ''
+  todayList.forEach(item => {
+    html += `<div>${item.item}：${item.value}</div>`
+  })
+  el.innerHTML = html
 }
 
 render()
